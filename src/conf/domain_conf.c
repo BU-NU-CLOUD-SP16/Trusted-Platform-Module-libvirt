@@ -2181,6 +2181,15 @@ void virDomainHostdevDefClear(virDomainHostdevDefPtr def)
     }
 }
 
+void virDomainVtpmDefFree(virDomainVtpmDefPtr def)
+{
+       if (!def)
+              return;
+       VIR_FREE(def->backend_domname);
+       VIR_FREE(def->uuid);
+       VIR_FREE(def);
+}
+
 void virDomainTPMDefFree(virDomainTPMDefPtr def)
 {
     if (!def)
@@ -10077,6 +10086,44 @@ virDomainSmartcardDefParseXML(xmlNodePtr node,
     goto cleanup;
 }
 
+/* Parse the  XML definition for a VTPM device
+ *
+ * The XML looks like this:
+ *
+ * <vtpm backend='vtpmmgr' uuid='4b3a31f9-0c5d-47b9-a642-0a8c1fc319ee'/>
+ *
+ */
+static virDomainVtpmDefPtr
+virDomainVtpmDefParseXML(xmlNodePtr node, xmlXPathContextPtr ctxt)
+{
+       char *backend = NULL;
+       char *uuid = NULL;
+       virDomainVtpmDefPtr def;
+       xmlNodePtr save = ctxt->node;
+
+       if (VIR_ALLOC(def) < 0)
+              return NULL;
+
+       backend = virXMLPropString(node, "backend");
+       if (backend == NULL) {
+              goto error;
+       }
+
+       def->backend_domname = backend;
+
+       uuid = virXMLPropString(node, "uuid");
+       def->uuid = uuid;
+
+       cleanup:
+              ctxt->node = save;
+              return def;
+
+       error:
+              virDomainVtpmDefFree(def);
+              def = NULL;
+              goto cleanup;
+}
+
 /* Parse the XML definition for a TPM device
  *
  * The XML looks like this:
@@ -16368,6 +16415,22 @@ virDomainDefParseXML(xmlDocPtr xml,
             goto error;
 
         def->rngs[def->nrngs++] = rng;
+    }
+    VIR_FREE(nodes);
+
+    /* Parse the VTPM devices */
+    if ((n = virXPathNodeSet("./devices/vtpm", ctxt, &nodes)) < 0)
+        goto error;
+
+    if (n > 1) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("only a single VTPM device is supported"));
+        goto error;
+    }
+
+    if (n > 0) {
+        if (!(def->vtpm = virDomainVtpmDefParseXML(nodes[0], ctxt)))
+            goto error;
     }
     VIR_FREE(nodes);
 

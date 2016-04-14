@@ -1293,6 +1293,46 @@ libxlMakeDiskList(virDomainDefPtr def, libxl_domain_config *d_config)
     return -1;
 }
 
+static int
+libxlMakeVtpm(virDomainDefPtr def, libxl_domain_config *d_config)
+{
+    //Read out the configuration from a virDomainDefPtr
+    virDomainVtpmDefPtr l_vtpm = def->vtpm;
+    //nvtpms MUST be 1 for this routine to work
+    int nvtpms = 1;
+    libxl_device_vtpm *x_vtpm;
+    
+    if (VIR_ALLOC_N(x_vtpm, nvtpms) < 0)
+        return -1;
+
+    libxl_device_vtpm_init(x_vtpm);
+
+    //For the VTPM this is the manager's name, for the Instance this is the VTPM
+    if (VIR_STRDUP(x_vtpm->backend_domname, l_vtpm->backend_domname) < 0)
+        goto error;
+
+    //Used for the VTPM only, specifies its own UUID
+    if (l_vtpm->uuid != NULL) {
+        if (libxl_uuid_from_string(&(x_vtpm->uuid), l_vtpm->uuid) < 0)
+            goto error;
+    }
+    else {
+        libxl_uuid_clear(&(x_vtpm->uuid));
+    }
+
+    //Assign the values to the d_config object
+    d_config->vtpms = x_vtpm;
+    d_config->num_vtpms = nvtpms;
+
+    return 0;
+
+ error:
+    //Free all the pointers associated with these objects
+    libxl_device_vtpm_dispose(x_vtpm);
+    VIR_FREE(x_vtpm);
+    return -1;
+}
+
 int
 libxlMakeNic(virDomainDefPtr def,
              virDomainNetDefPtr l_nic,
@@ -2145,6 +2185,9 @@ libxlBuildDomainConfig(virPortAllocatorPtr graphicsports,
         return -1;
 
     if (libxlMakePCIList(def, d_config) < 0)
+        return -1;
+
+    if (libxlMakeVtpm(def, d_config) < 0)
         return -1;
 
     /*

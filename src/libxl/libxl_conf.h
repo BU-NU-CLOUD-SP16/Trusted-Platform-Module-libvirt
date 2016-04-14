@@ -193,6 +193,7 @@ libxlDomainGetEmulatorType(const virDomainDef *def);
 
 int
 libxlMakeDisk(virDomainDiskDefPtr l_dev, libxl_device_disk *x_dev);
+
 int
 libxlMakeNic(virDomainDefPtr def,
              virDomainNetDefPtr l_nic,

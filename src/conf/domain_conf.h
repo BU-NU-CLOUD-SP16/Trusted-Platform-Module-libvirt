@@ -58,6 +58,9 @@
 typedef struct _virDomainDiskDef virDomainDiskDef;
 typedef virDomainDiskDef *virDomainDiskDefPtr;
 
+typedef struct _virDomainVtpmDef virDomainVtpmDef;
+typedef virDomainVtpmDef *virDomainVtpmDefPtr;
+
 typedef struct _virDomainControllerDef virDomainControllerDef;
 typedef virDomainControllerDef *virDomainControllerDefPtr;
 
@@ -734,6 +737,10 @@ struct _virDomainDiskDef {
     char *domain_name; /* backend domain name */
 };
 
+struct _virDomainVtpmDef {
+    char *backend_domname;
+    char *uuid;
+};
 
 typedef enum {
     VIR_DOMAIN_CONTROLLER_TYPE_IDE,
@@ -2316,6 +2323,7 @@ struct _virDomainDef {
     virDomainWatchdogDefPtr watchdog;
     virDomainMemballoonDefPtr memballoon;
     virDomainNVRAMDefPtr nvram;
+    virDomainVtpmDefPtr vtpm;
     virDomainTPMDefPtr tpm;
     virCPUDefPtr cpu;
     virSysinfoDefPtr sysinfo;
@@ -2564,6 +2572,7 @@ void virDomainDeviceInfoClear(virDomainDeviceInfoPtr info);
 void virDomainDefClearPCIAddresses(virDomainDefPtr def);
 void virDomainDefClearCCWAddresses(virDomainDefPtr def);
 void virDomainDefClearDeviceAliases(virDomainDefPtr def);
+void virDomainVtpmDefFree(virDomainVtpmDefPtr def);
 void virDomainTPMDefFree(virDomainTPMDefPtr def);
 
 typedef int (*virDomainDeviceInfoCallback)(virDomainDefPtr def,
